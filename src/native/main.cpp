@@ -26,7 +26,7 @@ struct RuntimeState {
     SDL_GLContext gl_context = nullptr;
     bool initialized = false;
     bool host_window_open = false;
-    ImVec4 clear_color = ImVec4(0.04f, 0.05f, 0.07f, 1.0f);
+    ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 };
 
 RuntimeState g_runtime;
@@ -75,6 +75,7 @@ bool EnsureRuntime() {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 
     g_runtime.window = SDL_CreateWindow(
         "implotjs",
@@ -219,12 +220,14 @@ EXPORT int implotjs_begin_frame(int width, int height) {
     ImGuiIO& io = ImGui::GetIO();
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
     ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Always);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGuiWindowFlags host_flags =
         ImGuiWindowFlags_NoDecoration |
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoSavedSettings |
         ImGuiWindowFlags_NoBringToFrontOnFocus |
-        ImGuiWindowFlags_NoNavFocus;
+        ImGuiWindowFlags_NoNavFocus |
+        ImGuiWindowFlags_NoBackground;
     ImGui::Begin("##implotjs_host", nullptr, host_flags);
     g_runtime.host_window_open = true;
     return 1;
@@ -237,6 +240,7 @@ EXPORT void implotjs_end_frame() {
 
     if (g_runtime.host_window_open) {
         ImGui::End();
+        ImGui::PopStyleVar();
         g_runtime.host_window_open = false;
     }
 
