@@ -21,12 +21,15 @@ All in-scope items have been resolved. See commit history for details.
 
 - `PlotBubbles` (`plotBubbles(values, szs)` and `plotBubbles(xs, ys, szs)`)
 - `PlotPolygon` (`plotPolygon(xs, ys)`)
+- `Plot*G` getter variants (`plotLineG`, `plotScatterG`, `plotStairsG`, `plotBarsG`, `plotDigitalG`) with JS callback bridge
 
 ### 3. Setup / Axes ✅
 
 - `SetupAxisTicks(values, labels)` — labels are now passed through to C++.
 - `SetupAxisLinks(axis, min, max)` — added with persistent WASM memory during plot lifetime.
 - `SetNextAxisLinks(axis, min, max)` — added with persistent WASM memory until next `EndPlot`.
+- `SetupAxisScale(axis, forward, inverse)` — custom transform callbacks via EM_JS bridge.
+- `SetupAxisFormat(axis, formatter)` — custom formatter callback via EM_JS bridge.
 
 ### 4. Legend Interaction ✅
 
@@ -36,6 +39,8 @@ All in-scope items have been resolved. See commit history for details.
 ### 5. Plot Utils ✅
 
 - `isSubplotsHovered()` — captured during render.
+- `beginAlignedPlots(groupId, vertical?)` / `endAlignedPlots()` — alignment helpers.
+- `pushPlotClipRect(expand?)` / `popPlotClipRect()` — custom rendering clip rect.
 
 ### 6. Style & Colormap Helpers ✅
 
@@ -49,35 +54,26 @@ All in-scope items have been resolved. See commit history for details.
 - `bustColorCache(title?)` — synchronous/runtime action.
 - `getStyle()` — full struct snapshot (`ImPlotStyleSnapshot`).
 
+### 7. Debug / Editor Windows ✅
+
+- `showStyleEditor()`
+- `showStyleSelector(label)`
+- `showColormapSelector(label)`
+- `showInputMapSelector(label)`
+- `showUserGuide()`
+- `showMetricsWindow()`
+
+`ShowDemoWindow` is intentionally excluded because it requires compiling `implot_demo.cpp`, which would bloat the WASM binary with demo-only code.
+
 ## Out of Scope (Requires JS↔C++ callbacks or breaks the managed-canvas model)
-
-### Getter-Based Plots (`Plot*G`)
-
-`PlotLineG`, `PlotScatterG`, `PlotStairsG`, `PlotShadedG`, `PlotBarsG`, and `PlotDigitalG` require an `ImPlotGetter` callback invoked from C++ for every data point. Synchronous JS callbacks from WASM are not practical in this architecture.
-
-### Custom Axis Transforms
-
-`SetupAxisScale(axis, forward, inverse)` requires C++→JS callbacks for every tick. Out of scope for the same reason as getter plots.
-
-### Custom Axis Formatters
-
-`SetupAxisFormat(axis, formatter)` requires an `ImPlotFormatter` callback. Out of scope.
 
 ### Drag & Drop
 
 `BeginDragDropTargetPlot`, `BeginDragDropSourcePlot`, etc. involve ImGui payload types and complex lifetime management that does not map cleanly to a JS wrapper.
 
-### Custom Plot Rendering
+### Raw Draw List Access
 
-`GetPlotDrawList`, `PushPlotClipRect`, `PopPlotClipRect` expose raw ImGui draw-list access. This breaks the managed-canvas abstraction and is not wrapped.
-
-### Aligned Plots
-
-`BeginAlignedPlots` / `EndAlignedPlots` are lower-level alignment helpers. They can be revisited if there is user demand.
-
-### Debug / Editor Windows
-
-`ShowDemoWindow`, `ShowStyleEditor`, `ShowStyleSelector`, `ShowColormapSelector`, `ShowInputMapSelector`, `ShowUserGuide`, and `ShowMetricsWindow` are debug/editor utilities, not part of the core plotting API surface.
+`GetPlotDrawList` exposes the raw `ImDrawList*` pointer. While `PushPlotClipRect`/`PopPlotClipRect` are exposed for basic custom rendering, the full draw-list API (lines, triangles, text, etc.) would require wrapping the entire `ImDrawList` interface and is not practical for this wrapper.
 
 ## Notes
 
