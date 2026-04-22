@@ -58,21 +58,10 @@ jobs:
             exit 0
           fi
 
-          {
-            echo "## Changes since $PREV_TAG"
-            echo ""
-          } > /tmp/release_body.md
-
-          git log "$PREV_TAG".."$CURRENT_TAG" --pretty=format:"%s|%h|%an%n" > /tmp/commits.txt
+          git log "$PREV_TAG".."$CURRENT_TAG" --pretty=format:"%s|%h|%an%n" | sed '/^$/d' > /tmp/commits.txt
 
           while IFS='|' read -r subject hash author; do
-            # Try to link author if it looks like a GitHub handle (no spaces)
-            if echo "$author" | grep -qE '^[A-Za-z0-9_-]+$'; then
-              author_link="[@$author](https://github.com/$author)"
-            else
-              author_link="$author"
-            fi
-            echo "- $subject [\`$hash\`](https://github.com/${{ github.repository }}/commit/$hash) $author_link" >> /tmp/release_body.md
+            echo "- $subject [\`$hash\`](https://github.com/${{ github.repository }}/commit/$hash) $author" >> /tmp/release_body.md
           done < /tmp/commits.txt
 
           echo "body<<EOF" >> "$GITHUB_OUTPUT"
