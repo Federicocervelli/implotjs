@@ -671,6 +671,18 @@ EXPORT void implotjs_get_last_item_color(double* out) {
     WriteVec4(out, ImPlot::GetLastItemColor());
 }
 
+EXPORT const char* implotjs_get_style_color_name(int idx) {
+    return ImPlot::GetStyleColorName(static_cast<ImPlotCol>(idx));
+}
+
+EXPORT const char* implotjs_get_marker_name(int idx) {
+    return ImPlot::GetMarkerName(static_cast<ImPlotMarker>(idx));
+}
+
+EXPORT int implotjs_next_marker() {
+    return static_cast<int>(ImPlot::NextMarker());
+}
+
 EXPORT void implotjs_style_colors(int theme) {
     switch (theme) {
         case 1: ImPlot::StyleColorsClassic(); break;

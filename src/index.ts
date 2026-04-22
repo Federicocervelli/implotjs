@@ -660,6 +660,10 @@ export interface ImPlotChart {
   setNextMarkerStyle(marker?: number, size?: number, fill?: Color, weight?: number, outline?: Color): this;
   setNextErrorBarStyle(color?: Color, size?: number, weight?: number): this;
   getLastItemColor(): number[];
+  getStyleColorName(idx: number): string | null;
+  getMarkerName(idx: number): string | null;
+  nextMarker(): this;
+  getNextMarker(): number | null;
 
   addColormap(name: string, colors: Color[], qualitative?: boolean): number;
   getColormapCount(): number;
@@ -719,6 +723,7 @@ export class ImPlotChart {
   nextAxisLinksAllocations: number[] = [];
   lastSubplotsHovered = false;
   lastNextColormapColor: number[] | null = null;
+  lastNextMarker: number | null = null;
 
   constructor(options: ImPlotChartOptions = {}) {
     this.canvas = options.canvas ?? document.createElement("canvas");
@@ -1395,6 +1400,27 @@ export class ImPlotChart {
     } finally {
       freePtr(this.module, out);
     }
+  }
+
+  getStyleColorName(idx: number): string | null {
+    this.#ensureMountedSync();
+    const ptr = this.module._implotjs_get_style_color_name(idx);
+    return readCString(this.module, ptr);
+  }
+
+  getMarkerName(idx: number): string | null {
+    this.#ensureMountedSync();
+    const ptr = this.module._implotjs_get_marker_name(idx);
+    return readCString(this.module, ptr);
+  }
+
+  nextMarker(): this {
+    this.#addCommand({ type: "nextMarker" });
+    return this;
+  }
+
+  getNextMarker(): number | null {
+    return this.lastNextMarker;
   }
 
   isLegendEntryHovered(label: string): boolean {
@@ -2242,6 +2268,9 @@ export class ImPlotChart {
         }
         break;
       }
+      case "nextMarker":
+        this.lastNextMarker = this.module._implotjs_next_marker();
+        break;
       case "colormapScale":
         withCString(this.module, node.label, (labelPtr) => {
           withCString(this.module, node.format, (formatPtr) => {
