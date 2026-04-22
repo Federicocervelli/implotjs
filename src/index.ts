@@ -53,6 +53,34 @@ export interface ColormapSliderState {
   color?: number[];
 }
 
+export interface ImPlotStyleSnapshot {
+  plotDefaultSize: Vec2;
+  plotMinSize: Vec2;
+  plotBorderSize: number;
+  minorAlpha: number;
+  majorTickLen: Vec2;
+  minorTickLen: Vec2;
+  majorTickSize: Vec2;
+  minorTickSize: Vec2;
+  majorGridSize: Vec2;
+  minorGridSize: Vec2;
+  plotPadding: Vec2;
+  labelPadding: Vec2;
+  legendPadding: Vec2;
+  legendInnerPadding: Vec2;
+  legendSpacing: Vec2;
+  mousePosPadding: Vec2;
+  annotationPadding: Vec2;
+  fitPadding: Vec2;
+  digitalPadding: number;
+  digitalSpacing: number;
+  colors: Color[];
+  colormap: number;
+  useLocalTime: boolean;
+  useISO8601: boolean;
+  use24HourClock: boolean;
+}
+
 export interface ImPlotChartOptions {
   canvas?: HTMLCanvasElement;
   width?: number;
@@ -664,6 +692,7 @@ export interface ImPlotChart {
   getMarkerName(idx: number): string | null;
   nextMarker(): this;
   getNextMarker(): number | null;
+  getStyle(): ImPlotStyleSnapshot;
 
   addColormap(name: string, colors: Color[], qualitative?: boolean): number;
   getColormapCount(): number;
@@ -1421,6 +1450,49 @@ export class ImPlotChart {
 
   getNextMarker(): number | null {
     return this.lastNextMarker;
+  }
+
+  getStyle(): ImPlotStyleSnapshot {
+    this.#ensureMountedSync();
+    const out = allocOutputF64(this.module, 104);
+    try {
+      this.module._implotjs_get_style(out);
+      const v = readOutputF64(this.module, out, 104);
+      const colors: Color[] = [];
+      for (let i = 0; i < ImPlotCol.COUNT; i += 1) {
+        const base = 36 + i * 4;
+        colors.push([v[base], v[base + 1], v[base + 2], v[base + 3]] as Color);
+      }
+      return {
+        plotDefaultSize: [v[0], v[1]] as Vec2,
+        plotMinSize: [v[2], v[3]] as Vec2,
+        plotBorderSize: v[4],
+        minorAlpha: v[5],
+        majorTickLen: [v[6], v[7]] as Vec2,
+        minorTickLen: [v[8], v[9]] as Vec2,
+        majorTickSize: [v[10], v[11]] as Vec2,
+        minorTickSize: [v[12], v[13]] as Vec2,
+        majorGridSize: [v[14], v[15]] as Vec2,
+        minorGridSize: [v[16], v[17]] as Vec2,
+        plotPadding: [v[18], v[19]] as Vec2,
+        labelPadding: [v[20], v[21]] as Vec2,
+        legendPadding: [v[22], v[23]] as Vec2,
+        legendInnerPadding: [v[24], v[25]] as Vec2,
+        legendSpacing: [v[26], v[27]] as Vec2,
+        mousePosPadding: [v[28], v[29]] as Vec2,
+        annotationPadding: [v[30], v[31]] as Vec2,
+        fitPadding: [v[32], v[33]] as Vec2,
+        digitalPadding: v[34],
+        digitalSpacing: v[35],
+        colors,
+        colormap: v[100],
+        useLocalTime: !!v[101],
+        useISO8601: !!v[102],
+        use24HourClock: !!v[103],
+      };
+    } finally {
+      freePtr(this.module, out);
+    }
   }
 
   isLegendEntryHovered(label: string): boolean {

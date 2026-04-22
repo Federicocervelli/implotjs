@@ -683,6 +683,57 @@ EXPORT int implotjs_next_marker() {
     return static_cast<int>(ImPlot::NextMarker());
 }
 
+EXPORT void implotjs_get_style(double* out) {
+    const ImPlotStyle& style = ImPlot::GetStyle();
+    int i = 0;
+    out[i++] = style.PlotDefaultSize.x;
+    out[i++] = style.PlotDefaultSize.y;
+    out[i++] = style.PlotMinSize.x;
+    out[i++] = style.PlotMinSize.y;
+    out[i++] = style.PlotBorderSize;
+    out[i++] = style.MinorAlpha;
+    out[i++] = style.MajorTickLen.x;
+    out[i++] = style.MajorTickLen.y;
+    out[i++] = style.MinorTickLen.x;
+    out[i++] = style.MinorTickLen.y;
+    out[i++] = style.MajorTickSize.x;
+    out[i++] = style.MajorTickSize.y;
+    out[i++] = style.MinorTickSize.x;
+    out[i++] = style.MinorTickSize.y;
+    out[i++] = style.MajorGridSize.x;
+    out[i++] = style.MajorGridSize.y;
+    out[i++] = style.MinorGridSize.x;
+    out[i++] = style.MinorGridSize.y;
+    out[i++] = style.PlotPadding.x;
+    out[i++] = style.PlotPadding.y;
+    out[i++] = style.LabelPadding.x;
+    out[i++] = style.LabelPadding.y;
+    out[i++] = style.LegendPadding.x;
+    out[i++] = style.LegendPadding.y;
+    out[i++] = style.LegendInnerPadding.x;
+    out[i++] = style.LegendInnerPadding.y;
+    out[i++] = style.LegendSpacing.x;
+    out[i++] = style.LegendSpacing.y;
+    out[i++] = style.MousePosPadding.x;
+    out[i++] = style.MousePosPadding.y;
+    out[i++] = style.AnnotationPadding.x;
+    out[i++] = style.AnnotationPadding.y;
+    out[i++] = style.FitPadding.x;
+    out[i++] = style.FitPadding.y;
+    out[i++] = style.DigitalPadding;
+    out[i++] = style.DigitalSpacing;
+    for (int c = 0; c < ImPlotCol_COUNT; ++c) {
+        out[i++] = style.Colors[c].x;
+        out[i++] = style.Colors[c].y;
+        out[i++] = style.Colors[c].z;
+        out[i++] = style.Colors[c].w;
+    }
+    out[i++] = static_cast<double>(style.Colormap);
+    out[i++] = style.UseLocalTime ? 1.0 : 0.0;
+    out[i++] = style.UseISO8601 ? 1.0 : 0.0;
+    out[i++] = style.Use24HourClock ? 1.0 : 0.0;
+}
+
 EXPORT void implotjs_style_colors(int theme) {
     switch (theme) {
         case 1: ImPlot::StyleColorsClassic(); break;
