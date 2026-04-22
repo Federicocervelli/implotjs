@@ -1,10 +1,14 @@
 {
   "name": "implotjs",
-  "version": "0.1.5",
+  "version": "0.1.1",
   "author": {
     "name": "Federico Cervelli",
     "email": "federicocervelli01@gmail.com",
     "url": "https://cervelli.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Federicocervelli/implotjs.git"
   },
   "description": "Managed-canvas ImPlot wrapper for JavaScript and TypeScript.",
   "type": "module",
