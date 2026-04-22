@@ -285,12 +285,16 @@ EXPORT void implotjs_setup_axis_format(int axis, const char* fmt) {
     ImPlot::SetupAxisFormat(axis, fmt);
 }
 
-EXPORT void implotjs_setup_axis_ticks_values(int axis, const double* values, int count) {
-    ImPlot::SetupAxisTicks(axis, values, count);
+EXPORT void implotjs_setup_axis_ticks_values(int axis, const double* values, int count, const char* const* labels, int label_count, int keep_default) {
+    if (labels != nullptr && label_count > 0) {
+        ImPlot::SetupAxisTicks(axis, values, count, labels, keep_default != 0);
+    } else {
+        ImPlot::SetupAxisTicks(axis, values, count, nullptr, keep_default != 0);
+    }
 }
 
-EXPORT void implotjs_setup_axis_ticks_range(int axis, double v_min, double v_max, int count) {
-    ImPlot::SetupAxisTicks(axis, v_min, v_max, count);
+EXPORT void implotjs_setup_axis_ticks_range(int axis, double v_min, double v_max, int count, int keep_default) {
+    ImPlot::SetupAxisTicks(axis, v_min, v_max, count, nullptr, keep_default != 0);
 }
 
 EXPORT void implotjs_setup_axis_scale(int axis, int scale) {

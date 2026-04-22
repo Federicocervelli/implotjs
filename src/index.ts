@@ -914,11 +914,13 @@ export class ImPlotChart {
 
   setupAxisTicks(axis: number, valuesOrMin: NumericArray | number, countOrMax: number, labelsOrCount?: unknown, keepDefault = false): this {
     if (Array.isArray(valuesOrMin) || isTypedArray(valuesOrMin)) {
+      const labels = Array.isArray(labelsOrCount) && labelsOrCount.every((l) => typeof l === "string") ? (labelsOrCount as string[]) : undefined;
       this.#addCommand({
         type: "setupAxisTicksValues",
         axis,
         values: toFloat64Array(valuesOrMin),
         count: countOrMax,
+        labels,
         keepDefault,
       });
     } else {
@@ -1654,14 +1656,20 @@ export class ImPlotChart {
       case "setupAxisTicksValues": {
         const { ptr } = allocFloat64Array(this.module, node.values);
         try {
-          this.module._implotjs_setup_axis_ticks_values(node.axis, ptr, node.values.length);
+          if (node.labels && node.labels.length > 0) {
+            withStringArray(this.module, node.labels, (labelsPtr) => {
+              this.module._implotjs_setup_axis_ticks_values(node.axis, ptr, node.count, labelsPtr, node.labels.length, node.keepDefault ? 1 : 0);
+            });
+          } else {
+            this.module._implotjs_setup_axis_ticks_values(node.axis, ptr, node.count, 0, 0, node.keepDefault ? 1 : 0);
+          }
         } finally {
           freePtr(this.module, ptr);
         }
         break;
       }
       case "setupAxisTicksRange":
-        this.module._implotjs_setup_axis_ticks_range(node.axis, node.min, node.max, node.count);
+        this.module._implotjs_setup_axis_ticks_range(node.axis, node.min, node.max, node.count, node.keepDefault ? 1 : 0);
         break;
       case "setupAxisScale":
         this.module._implotjs_setup_axis_scale(node.axis, node.scale);
