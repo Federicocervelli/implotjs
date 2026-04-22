@@ -591,6 +591,10 @@ EXPORT int implotjs_is_plot_hovered() {
     return ImPlot::IsPlotHovered() ? 1 : 0;
 }
 
+EXPORT int implotjs_is_subplots_hovered() {
+    return ImPlot::IsSubplotsHovered() ? 1 : 0;
+}
+
 EXPORT int implotjs_is_axis_hovered(int axis) {
     return ImPlot::IsAxisHovered(axis) ? 1 : 0;
 }

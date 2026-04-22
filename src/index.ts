@@ -680,6 +680,7 @@ export interface ImPlotChart {
   isPlotHovered(title?: string | null): boolean;
   isAxisHovered(axis: number, title?: string | null): boolean;
   isLegendEntryHovered(label: string): boolean;
+  isSubplotsHovered(): boolean;
   isPlotSelected(title?: string | null): boolean;
   getPlotSelection(title?: string | null): PlotRect | null;
   pixelsToPlot(pixel: Vec2 | PlotPoint, title?: string | null, xAxis?: number, yAxis?: number): PlotPoint | null;
@@ -710,6 +711,7 @@ export class ImPlotChart {
   lastPlotKey: string | null = null;
   plotIdCounter = 0;
   nextAxisLinksAllocations: number[] = [];
+  lastSubplotsHovered = false;
 
   constructor(options: ImPlotChartOptions = {}) {
     this.canvas = options.canvas ?? document.createElement("canvas");
@@ -1393,6 +1395,10 @@ export class ImPlotChart {
     return withCString(this.module, label, (labelPtr) => !!this.module._implotjs_is_legend_entry_hovered(labelPtr));
   }
 
+  isSubplotsHovered(): boolean {
+    return this.lastSubplotsHovered;
+  }
+
   addColormap(name: string, colors: Color[], qualitative = true): number {
     const action = (module: NativeModule): number => {
       const rgba: number[] = [];
@@ -1649,6 +1655,7 @@ export class ImPlotChart {
             for (const child of node.children) {
               this.#renderNode(child);
             }
+            this.lastSubplotsHovered = !!this.module._implotjs_is_subplots_hovered();
             this.module._implotjs_end_subplots();
           }
         });
