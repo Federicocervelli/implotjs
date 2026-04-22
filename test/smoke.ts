@@ -8,7 +8,6 @@ const testDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(testDir, "node_modules/implotjs");
 const requiredFiles = [
   "README.md",
-  "THIRD_PARTY_NOTICES.md",
   "dist/index.js",
   "dist/index.d.ts",
   "dist/implotjs.js",

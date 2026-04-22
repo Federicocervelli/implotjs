@@ -51,4 +51,4 @@ npm run release:major   # 0.1.0 -> 1.0.0
 
 This bumps `package.json`, commits, tags (e.g. `v0.1.1`), and pushes. The CI workflow (`.github/workflows/release.yml`) then builds, tests, publishes to npm, and creates a GitHub Release.
 
-**Required:** An `NPM_TOKEN` secret must be configured in the GitHub repository settings.
+**Publishing:** The release workflow uses npm [Trusted Publishers](https://docs.npmjs.com/trusted-publishers) (OIDC) — no `NPM_TOKEN` secret is required.

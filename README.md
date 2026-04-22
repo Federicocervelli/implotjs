@@ -12,11 +12,12 @@ import {
   ImPlotFlags,
   ImPlotLocation,
   ImPlotLegendFlags,
-} from "../dist/index.js";
+  ImPlotCol,
+} from "implotjs";
 
 const chart = new ImPlotChart({
   canvas: document.querySelector("#app"),
-  width: 1200,
+  width: 1280,
   height: 720,
   autoStart: false,
 });
@@ -24,30 +25,36 @@ const chart = new ImPlotChart({
 await chart.mount();
 
 chart
-  .beginPlot("Signals", [-1, 0], ImPlotFlags.None)
+  .pushStyleColor(ImPlotCol.PlotBg, [0, 0, 0, 0])
+  .beginPlot("Signals")
   .setupAxes("t", "value")
   .setupLegend(ImPlotLocation.NorthEast, ImPlotLegendFlags.None)
   .plotLine("sin", Float64Array.from([0, 0.5, 0.8, 1.0]))
   .plotScatter("samples", [0, 1, 2, 3], [0, 0.5, 0.8, 1.0])
-  .endPlot();
+  .endPlot()
+  .popStyleColor();
 
 await chart.start();
 ```
 
-## Current scope
+The canvas is transparent by default, so you can control the page background with plain CSS and use `pushStyleColor(ImPlotCol.PlotBg, [0, 0, 0, 0])` to make the plot background transparent as well.
 
-This implementation covers the main deterministic ImPlot plotting/setup/style surface and exports ImPlot-like enum/flag constants. Internally, rendering is still immediate-mode; the wrapper stores a persistent plot tree and replays it on each render.
+## Supported features
 
-Callback-driven features from the C++ API are still intentionally out of scope:
-
-- custom getter callbacks (`PlotLineG`, `PlotScatterG`, etc.)
-- custom formatter callbacks
-- custom transform callbacks
-- drag-and-drop payload interop
-
-`plotImage` is wired through as a low-level texture-id call, but typical browser-side image-to-texture convenience helpers are not provided yet.
-
-Interactive charts need an active render loop. Use `await chart.start()` to begin continuous rendering, or call `await chart.render()` manually when you only want to draw a single frame.
+- All standard plot types: `plotLine`, `plotScatter`, `plotStairs`, `plotShaded`, `plotBars`, `plotBarGroups`, `plotErrorBars`, `plotStem`, `plotInfLines`, `plotPieChart`, `plotHeatmap`, `plotHistogram`, `plotDigital`, `plotImage`, `plotText`, `plotDummy`, `plotBubbles`, `plotPolygon`
+- Getter variants: `plotLineG`, `plotScatterG`, `plotStairsG`, `plotBarsG`, `plotDigitalG` (JS callback → C++)
+- Axes & setup: `setupAxes`, `setupAxis`, `setupAxisLimits`, `setupAxisTicks`, `setupAxisLinks`, `setupAxisScale` (with custom transform callbacks), `setupAxisFormat` (with custom formatter callbacks), `setupLegend`, `setupMouseText`, `setupFinish`
+- Next-frame helpers: `setNextAxisLimits`, `setNextAxisLinks`, `setNextLineStyle`, `setNextFillStyle`, `setNextMarkerStyle`, `setNextErrorBarStyle`
+- Subplots: `beginSubplots` / `endSubplots`
+- Aligned plots: `beginAlignedPlots` / `endAlignedPlots`
+- Plot interaction: `isPlotHovered`, `isPlotSelected`, `isSubplotsHovered`, `getPlotMousePos`, `getPlotLimits`, `getPlotSelection`, `cancelPlotSelection`, `hideNextItem`, `getLastItemColor`, `getLastItemID`
+- Legend interaction: `beginLegendPopup` / `endLegendPopup`, `isLegendEntryHovered`
+- Annotations & tags: `plotAnnotation`, `plotTag`
+- Drag points & lines: `dragPointX`, `dragPointXY`, `dragLineX`, `dragLineY`
+- Colormaps: `colormapScale`, `pushColormap` / `popColormap`, `getColormapIndex`, `getColormapSize`, `getColormapColor`, `nextColormapColor`, `bustColorCache`
+- Style: `pushStyleColor` / `popStyleColor`, `pushStyleVar` / `popStyleVar`, `getStyleColor`, `getStyleColorU32`, `getStyle`, `getStyleColorName`, `getMarkerName`, `nextMarker`
+- Custom rendering: `pushPlotClipRect` / `popPlotClipRect`
+- Debug windows: `showStyleEditor`, `showStyleSelector`, `showColormapSelector`, `showInputMapSelector`, `showUserGuide`, `showMetricsWindow`
 
 ## Prerequisites
 
@@ -101,7 +108,7 @@ To manually inspect the browser-side test app after that:
 bun run start:test
 ```
 
-`start:test` now refreshes the packaged tarball and reinstalls the `test/` consumer app before starting the HTTP server, so it always serves the latest packaged build.
+`start:test` refreshes the packaged tarball and reinstalls the `test/` consumer app before starting the HTTP server, so it always serves the latest packaged build.
 
 Then open:
 
@@ -115,4 +122,13 @@ http://localhost:8001/index.html
 - `vendor/imgui` and `vendor/implot` are git submodules that track the upstream projects used to build the WASM runtime.
 - `prepack` rebuilds the runtime, so packed/published artifacts always include the current JS/TS entrypoints and WASM payloads.
 - `ImDrawIdx` is configured as `unsigned int`, matching ImPlot's recommended high-density rendering setup.
-- `src/index.ts` is now the single source of truth for the wrapper API; `dist/index.js` and `dist/index.d.ts` are generated from it during build.
+- `src/index.ts` is the single source of truth for the wrapper API; `dist/index.js` and `dist/index.d.ts` are generated from it during build.
+
+## Third-Party Notices
+
+This repository includes the following upstream projects as git submodules:
+
+- **Dear ImGui** — <https://github.com/ocornut/imgui> (MIT)
+- **ImPlot** — <https://github.com/epezent/implot> (MIT)
+
+The original license texts are preserved in `vendor/imgui/LICENSE.txt` and `vendor/implot/LICENSE`.
