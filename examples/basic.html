@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>implotjs example</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, #1b2431 0%, #0e1218 48%, #090c10 100%);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+
+      .frame {
+        width: min(96vw, 1400px);
+        padding: 20px;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: min(80vh, 900px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        background: #0a0d12;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <canvas id="app" width="1280" height="720"></canvas>
+    </div>
+
+    <script type="module">
+      import { ImPlotChart, ImPlotLocation } from "../dist/index.js";
+
+      const canvas = document.querySelector("#app");
+      const chart = new ImPlotChart({ canvas, width: 1280, height: 720 });
+      await chart.mount();
+
+      const xs = Float64Array.from({ length: 200 }, (_, i) => i / 20);
+      const sin = Float64Array.from(xs, (x) => Math.sin(x));
+      const cos = Float64Array.from(xs, (x) => Math.cos(x));
+
+      chart
+        .beginPlot("Traces")
+        .setupAxes("x", "y")
+        .setupLegend(ImPlotLocation.NorthEast)
+        .plotLine("sin(x)", xs, sin)
+        .plotLine("cos(x)", xs, cos)
+        .endPlot();
+
+      await chart.start();
+    </script>
+  </body>
+</html>

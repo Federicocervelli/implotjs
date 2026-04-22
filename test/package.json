@@ -1,0 +1,12 @@
+{
+  "name": "implotjs-package-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "bun run smoke.ts",
+    "start": "python3 -m http.server 8001"
+  },
+  "dependencies": {
+    "implotjs": "file:.packages/implotjs.tgz"
+  }
+}

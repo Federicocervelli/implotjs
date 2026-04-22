@@ -1,0 +1,42 @@
+{
+  "name": "implotjs",
+  "version": "0.1.0",
+  "author": {
+    "name": "Federico Cervelli",
+    "email": "federicocervelli01@gmail.com",
+    "url": "https://cervelli.dev"
+  },
+  "description": "Managed-canvas ImPlot wrapper for JavaScript and TypeScript.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    "dist"
+  ],
+  "scripts": {
+    "build": "bash scripts/build-wasm.sh",
+    "clean": "rm -rf build dist",
+    "package:test": "bash scripts/package-smoke-test.sh",
+    "prepack": "bash scripts/build-wasm.sh",
+    "start": "python3 -m http.server 8000",
+    "start:test": "bash scripts/start-test-server.sh"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "keywords": [
+    "imgui",
+    "implot",
+    "wasm",
+    "emscripten",
+    "webassembly"
+  ]
+}

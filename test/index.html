@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>implotjs package test</title>
+  <style>
+    canvas {
+      display: block;
+      width: 100%;
+      height: min(80vh, 900px);
+      background: #0a0d12;
+    }
+  </style>
+  <script type="importmap">
+      {
+        "imports": {
+          "implotjs": "./node_modules/implotjs/dist/index.js"
+        }
+      }
+    </script>
+</head>
+
+<body>
+  <canvas id="app" width="1280" height="720"></canvas>
+  <script type="module">
+    import { ImPlotChart, ImPlotLocation } from "implotjs";
+
+    const canvas = document.querySelector("#app");
+    const chart = new ImPlotChart({ canvas, width: 1280, height: 720 });
+    await chart.mount();
+
+    const xs = Float64Array.from({ length: 200 }, (_, i) => i / 20);
+    const sin = Float64Array.from(xs, (x) => Math.sin(x));
+    const cos = Float64Array.from(xs, (x) => Math.cos(x));
+
+    chart
+      .beginPlot("Packaged Traces")
+      .setupAxes("x", "y")
+      .setupLegend(ImPlotLocation.NorthEast)
+      .plotLine("sin(x)", xs, sin)
+      .plotLine("cos(x)", xs, cos)
+      .endPlot();
+
+    await chart.start();
+  </script>
+</body>
+
+</html>
