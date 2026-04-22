@@ -182,6 +182,7 @@ export const ImPlotLegendFlags = {
   Outside: 1 << 4,
   Horizontal: 1 << 5,
   Sort: 1 << 6,
+  Reverse: 1 << 7,
 };
 
 export const ImPlotMouseTextFlags = {
@@ -229,7 +230,7 @@ export const ImPlotBarGroupsFlags = { None: 0, Horizontal: 1 << 10, Stacked: 1 <
 export const ImPlotErrorBarsFlags = { None: 0, Horizontal: 1 << 10 };
 export const ImPlotStemsFlags = { None: 0, Horizontal: 1 << 10 };
 export const ImPlotInfLinesFlags = { None: 0, Horizontal: 1 << 10 };
-export const ImPlotPieChartFlags = { None: 0, Normalize: 1 << 10, IgnoreHidden: 1 << 11, Exploding: 1 << 12 };
+export const ImPlotPieChartFlags = { None: 0, Normalize: 1 << 10, IgnoreHidden: 1 << 11, Exploding: 1 << 12, NoSliceBorder: 1 << 13 };
 export const ImPlotHeatmapFlags = { None: 0, ColMajor: 1 << 10 };
 export const ImPlotHistogramFlags = {
   None: 0,
@@ -253,7 +254,8 @@ export const ImPlotScale = {
 };
 
 export const ImPlotMarker = {
-  None: -1,
+  None: -2,
+  Auto: -1,
   Circle: 0,
   Square: 1,
   Diamond: 2,
