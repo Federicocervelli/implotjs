@@ -265,6 +265,18 @@ EXPORT void implotjs_end_plot() {
     ImPlot::EndPlot();
 }
 
+EXPORT int implotjs_begin_legend_popup(const char* label_id, int mouse_button) {
+    return ImPlot::BeginLegendPopup(label_id, mouse_button) ? 1 : 0;
+}
+
+EXPORT void implotjs_end_legend_popup() {
+    ImPlot::EndLegendPopup();
+}
+
+EXPORT int implotjs_is_legend_entry_hovered(const char* label_id) {
+    return ImPlot::IsLegendEntryHovered(label_id) ? 1 : 0;
+}
+
 EXPORT int implotjs_begin_subplots(const char* title_id, int rows, int cols, double width, double height, int flags) {
     return ImPlot::BeginSubplots(title_id, rows, cols, Vec2From(width, height), flags) ? 1 : 0;
 }

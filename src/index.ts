@@ -583,6 +583,8 @@ export interface ImPlotChart {
 
   beginPlot(title: string, size?: Vec2, flags?: number): this;
   endPlot(): this;
+  beginLegendPopup(label: string, mouseButton?: number): this;
+  endLegendPopup(): this;
   beginSubplots(title: string, rows: number, cols: number, size: Vec2, flags?: number): this;
   endSubplots(): this;
 
@@ -677,6 +679,7 @@ export interface ImPlotChart {
   getPlotLimits(title?: string | null): PlotRect | null;
   isPlotHovered(title?: string | null): boolean;
   isAxisHovered(axis: number, title?: string | null): boolean;
+  isLegendEntryHovered(label: string): boolean;
   isPlotSelected(title?: string | null): boolean;
   getPlotSelection(title?: string | null): PlotRect | null;
   pixelsToPlot(pixel: Vec2 | PlotPoint, title?: string | null, xAxis?: number, yAxis?: number): PlotPoint | null;
@@ -882,6 +885,18 @@ export class ImPlotChart {
 
   endPlot(): this {
     this.#popContainer("plot");
+    return this;
+  }
+
+  beginLegendPopup(label: string, mouseButton = 1): this {
+    const node = { type: "legendPopup", label, mouseButton, children: [] };
+    this.#addNode(node);
+    this.stack.push(node);
+    return this;
+  }
+
+  endLegendPopup(): this {
+    this.#popContainer("legendPopup");
     return this;
   }
 
@@ -1373,6 +1388,11 @@ export class ImPlotChart {
     }
   }
 
+  isLegendEntryHovered(label: string): boolean {
+    this.#ensureMountedSync();
+    return withCString(this.module, label, (labelPtr) => !!this.module._implotjs_is_legend_entry_hovered(labelPtr));
+  }
+
   addColormap(name: string, colors: Color[], qualitative = true): number {
     const action = (module: NativeModule): number => {
       const rgba: number[] = [];
@@ -1608,6 +1628,17 @@ export class ImPlotChart {
               freePtr(this.module, ptr);
             }
             node.tempAllocations = [];
+          }
+        });
+        break;
+      case "legendPopup":
+        withCString(this.module, node.label, (labelPtr) => {
+          const active = this.module._implotjs_begin_legend_popup(labelPtr, node.mouseButton);
+          if (active) {
+            for (const child of node.children) {
+              this.#renderNode(child);
+            }
+            this.module._implotjs_end_legend_popup();
           }
         });
         break;
