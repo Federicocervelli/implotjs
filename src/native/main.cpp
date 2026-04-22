@@ -301,6 +301,10 @@ EXPORT void implotjs_setup_axis_scale(int axis, int scale) {
     ImPlot::SetupAxisScale(axis, static_cast<ImPlotScale>(scale));
 }
 
+EXPORT void implotjs_setup_axis_links(int axis, double* link_min, double* link_max) {
+    ImPlot::SetupAxisLinks(axis, link_min, link_max);
+}
+
 EXPORT void implotjs_setup_axis_limits_constraints(int axis, double v_min, double v_max) {
     ImPlot::SetupAxisLimitsConstraints(axis, v_min, v_max);
 }
@@ -335,6 +339,10 @@ EXPORT void implotjs_set_next_axis_limits(int axis, double v_min, double v_max, 
 
 EXPORT void implotjs_set_next_axis_to_fit(int axis) {
     ImPlot::SetNextAxisToFit(axis);
+}
+
+EXPORT void implotjs_set_next_axis_links(int axis, double* link_min, double* link_max) {
+    ImPlot::SetNextAxisLinks(axis, link_min, link_max);
 }
 
 EXPORT void implotjs_set_next_axes_limits(double x_min, double x_max, double y_min, double y_max, int cond) {

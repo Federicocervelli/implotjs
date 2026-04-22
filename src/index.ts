@@ -99,6 +99,7 @@ type RuntimeAction = (module: NativeModule) => unknown;
 type PlotNode = {
   type: string;
   children?: PlotNode[];
+  tempAllocations?: number[];
   [key: string]: any;
 };
 
@@ -593,6 +594,7 @@ export interface ImPlotChart {
   setupAxisScale(axis: number, scale: number): this;
   setupAxisLimitsConstraints(axis: number, min: number, max: number): this;
   setupAxisZoomConstraints(axis: number, min: number, max: number): this;
+  setupAxisLinks(axis: number, min: number, max: number): this;
   setupAxes(xLabel: string | null, yLabel: string | null, xFlags?: number, yFlags?: number): this;
   setupAxesLimits(xMin: number, xMax: number, yMin: number, yMax: number, cond?: number): this;
   setupLegend(location: number, flags?: number): this;
@@ -601,6 +603,7 @@ export interface ImPlotChart {
 
   setNextAxisLimits(axis: number, min: number, max: number, cond?: number): this;
   setNextAxisToFit(axis: number): this;
+  setNextAxisLinks(axis: number, min: number, max: number): this;
   setNextAxesLimits(xMin: number, xMax: number, yMin: number, yMax: number, cond?: number): this;
   setNextAxesToFit(): this;
 
@@ -703,6 +706,7 @@ export class ImPlotChart {
   plotMetadata: Map<string, unknown> = new Map();
   lastPlotKey: string | null = null;
   plotIdCounter = 0;
+  nextAxisLinksAllocations: number[] = [];
 
   constructor(options: ImPlotChartOptions = {}) {
     this.canvas = options.canvas ?? document.createElement("canvas");
@@ -829,6 +833,10 @@ export class ImPlotChart {
     for (const node of this.root.children) {
       this.#renderNode(node);
     }
+    for (const ptr of this.nextAxisLinksAllocations) {
+      freePtr(this.module, ptr);
+    }
+    this.nextAxisLinksAllocations = [];
     this.module._implotjs_end_frame();
     return this;
   }
@@ -955,6 +963,11 @@ export class ImPlotChart {
     return this;
   }
 
+  setupAxisLinks(axis: number, min: number, max: number): this {
+    this.#addCommand({ type: "setupAxisLinks", axis, min, max });
+    return this;
+  }
+
   setupAxes(xLabel: string | null, yLabel: string | null, xFlags = ImPlotAxisFlags.None, yFlags = ImPlotAxisFlags.None): this {
     this.#addCommand({ type: "setupAxes", xLabel, yLabel, xFlags, yFlags });
     return this;
@@ -987,6 +1000,11 @@ export class ImPlotChart {
 
   setNextAxisToFit(axis: number): this {
     this.#addNode({ type: "setNextAxisToFit", axis });
+    return this;
+  }
+
+  setNextAxisLinks(axis: number, min: number, max: number): this {
+    this.#addNode({ type: "setNextAxisLinks", axis, min, max });
     return this;
   }
 
@@ -1578,10 +1596,18 @@ export class ImPlotChart {
           const active = this.module._implotjs_begin_plot(titlePtr, node.size[0], node.size[1], node.flags);
           if (active) {
             for (const child of node.children) {
-              this.#renderNode(child);
+              this.#executeCommand(child, node);
             }
             this.#capturePlotState(node);
             this.module._implotjs_end_plot();
+            for (const ptr of this.nextAxisLinksAllocations) {
+              freePtr(this.module, ptr);
+            }
+            this.nextAxisLinksAllocations = [];
+            for (const ptr of node.tempAllocations ?? []) {
+              freePtr(this.module, ptr);
+            }
+            node.tempAllocations = [];
           }
         });
         break;
@@ -1597,7 +1623,7 @@ export class ImPlotChart {
         });
         break;
       default:
-        this.#executeCommand(node);
+        this.#executeCommand(node, null);
         break;
     }
   }
@@ -1642,7 +1668,7 @@ export class ImPlotChart {
     }
   }
 
-  #executeCommand(node: PlotNode): void {
+  #executeCommand(node: PlotNode, currentPlot: PlotNode | null): void {
     switch (node.type) {
       case "setupAxis":
         withCString(this.module, node.label, (labelPtr) => this.module._implotjs_setup_axis(node.axis, labelPtr, node.flags));
@@ -1674,6 +1700,19 @@ export class ImPlotChart {
       case "setupAxisScale":
         this.module._implotjs_setup_axis_scale(node.axis, node.scale);
         break;
+      case "setupAxisLinks": {
+        const ptr = allocOutputF64(this.module, 2);
+        this.module.HEAPF64[ptr >> 3] = node.min;
+        this.module.HEAPF64[(ptr >> 3) + 1] = node.max;
+        this.module._implotjs_setup_axis_links(node.axis, ptr, ptr + 8);
+        if (currentPlot) {
+          if (!currentPlot.tempAllocations) currentPlot.tempAllocations = [];
+          currentPlot.tempAllocations.push(ptr);
+        } else {
+          freePtr(this.module, ptr);
+        }
+        break;
+      }
       case "setupAxisLimitsConstraints":
         this.module._implotjs_setup_axis_limits_constraints(node.axis, node.min, node.max);
         break;
@@ -1703,6 +1742,14 @@ export class ImPlotChart {
       case "setNextAxisToFit":
         this.module._implotjs_set_next_axis_to_fit(node.axis);
         break;
+      case "setNextAxisLinks": {
+        const ptr = allocOutputF64(this.module, 2);
+        this.module.HEAPF64[ptr >> 3] = node.min;
+        this.module.HEAPF64[(ptr >> 3) + 1] = node.max;
+        this.module._implotjs_set_next_axis_links(node.axis, ptr, ptr + 8);
+        this.nextAxisLinksAllocations.push(ptr);
+        break;
+      }
       case "setNextAxesLimits":
         this.module._implotjs_set_next_axes_limits(node.xMin, node.xMax, node.yMin, node.yMax, node.cond);
         break;
