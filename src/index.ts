@@ -943,7 +943,7 @@ export class ImPlotChart {
     this.#scheduleNextFrame();
   }
 
-  beginPlot(title: string, size: Vec2 | PlotPoint = [-1, 0], flags = ImPlotFlags.None): this {
+  beginPlot(title: string, size: Vec2 | PlotPoint = [-1, -1], flags = ImPlotFlags.None): this {
     const node = {
       type: "plot",
       title,
