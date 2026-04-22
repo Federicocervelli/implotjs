@@ -30,7 +30,11 @@ target_include_directories(implotjs PRIVATE
 
 target_compile_definitions(implotjs PRIVATE
     IMGUI_DISABLE_FILE_FUNCTIONS
+    IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+    IMGUI_DISABLE_OBSOLETE_KEYIO
     IMGUI_IMPL_OPENGL_ES2
+    IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
+    IMPLOT_DISABLE_OBSOLETE_WARNINGS
 )
 
 target_compile_options(implotjs PRIVATE
@@ -38,6 +42,14 @@ target_compile_options(implotjs PRIVATE
     -Wextra
     -Wpedantic
     -sUSE_SDL=2
+    -Oz
+    -flto=full
+    -fno-exceptions
+    -fno-rtti
+    -ffunction-sections
+    -fdata-sections
+    -fvisibility=hidden
+    -fvisibility-inlines-hidden
 )
 
 target_link_options(implotjs PRIVATE
@@ -53,6 +65,15 @@ target_link_options(implotjs PRIVATE
     -sEXPORT_NAME=ImPlotJSModule
     -sEXPORTED_FUNCTIONS=['_main','_malloc','_free']
     -sEXPORTED_RUNTIME_METHODS=['HEAPU8','HEAPU32','HEAPF32','HEAPF64']
+    -Oz
+    -flto=full
+    -Wl,--gc-sections
+    -sMALLOC=emmalloc
+    -sENVIRONMENT=web
+    -sDYNAMIC_EXECUTION=0
+    -sSUPPORT_LONGJMP=0
+    -sWASM_BIGINT=1
+    -Wl,-Map,${CMAKE_BINARY_DIR}/link.map
 )
 
 set_target_properties(implotjs PROPERTIES
