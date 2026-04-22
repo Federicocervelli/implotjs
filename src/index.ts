@@ -729,6 +729,8 @@ export interface ImPlotChart {
   isAxisHovered(axis: number, title?: string | null): boolean;
   isLegendEntryHovered(label: string): boolean;
   isSubplotsHovered(): boolean;
+  pushPlotClipRect(expand?: number): this;
+  popPlotClipRect(): this;
   isPlotSelected(title?: string | null): boolean;
   getPlotSelection(title?: string | null): PlotRect | null;
   pixelsToPlot(pixel: Vec2 | PlotPoint, title?: string | null, xAxis?: number, yAxis?: number): PlotPoint | null;
@@ -1553,6 +1555,16 @@ export class ImPlotChart {
 
   isSubplotsHovered(): boolean {
     return this.lastSubplotsHovered;
+  }
+
+  pushPlotClipRect(expand = 0): this {
+    this.#addCommand({ type: "pushPlotClipRect", expand });
+    return this;
+  }
+
+  popPlotClipRect(): this {
+    this.#addCommand({ type: "popPlotClipRect" });
+    return this;
   }
 
   addColormap(name: string, colors: Color[], qualitative = true): number {
@@ -2458,6 +2470,12 @@ export class ImPlotChart {
         break;
       case "showMetricsWindow":
         this.module._implotjs_show_metrics_window();
+        break;
+      case "pushPlotClipRect":
+        this.module._implotjs_push_plot_clip_rect(node.expand);
+        break;
+      case "popPlotClipRect":
+        this.module._implotjs_pop_plot_clip_rect();
         break;
       default:
         throw new Error(`Unsupported render command: ${node.type}`);

@@ -603,6 +603,14 @@ EXPORT int implotjs_is_subplots_hovered() {
     return ImPlot::IsSubplotsHovered() ? 1 : 0;
 }
 
+EXPORT void implotjs_push_plot_clip_rect(float expand) {
+    ImPlot::PushPlotClipRect(expand);
+}
+
+EXPORT void implotjs_pop_plot_clip_rect() {
+    ImPlot::PopPlotClipRect();
+}
+
 EXPORT int implotjs_is_axis_hovered(int axis) {
     return ImPlot::IsAxisHovered(axis) ? 1 : 0;
 }
