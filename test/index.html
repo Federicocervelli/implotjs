@@ -8,7 +8,14 @@
   <style>
     body {
       margin: 0;
-      background: #0a0d12;
+      /* Bright background so transparent canvas areas are obvious */
+      background: repeating-linear-gradient(
+        45deg,
+        #ff0000,
+        #ff0000 20px,
+        #ffffff 20px,
+        #ffffff 40px
+      );
     }
     canvas {
       display: block;
@@ -29,7 +36,7 @@
 <body>
   <canvas id="app" width="1280" height="720"></canvas>
   <script type="module">
-    import { ImPlotChart, ImPlotLocation } from "implotjs";
+    import { ImPlotChart, ImPlotLocation, ImPlotCol } from "implotjs";
 
     const canvas = document.querySelector("#app");
     const chart = new ImPlotChart({ canvas, width: 1280, height: 720 });
@@ -40,12 +47,14 @@
     const cos = Float64Array.from(xs, (x) => Math.cos(x));
 
     chart
+      .pushStyleColor(ImPlotCol.PlotBg, [0, 0, 0, 0])
       .beginPlot("Packaged Traces")
       .setupAxes("x", "y")
       .setupLegend(ImPlotLocation.NorthEast)
       .plotLine("sin(x)", xs, sin)
       .plotLine("cos(x)", xs, cos)
-      .endPlot();
+      .endPlot()
+      .popStyleColor();
 
     await chart.start();
   </script>

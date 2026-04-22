@@ -802,9 +802,24 @@ export class ImPlotChart {
       throw new Error("Cannot mount a destroyed chart.");
     }
     if (!this.modulePromise) {
+      // Ensure the canvas has a WebGL context with alpha so SDL2/Emscripten
+      // picks it up and the canvas composites transparently over the page.
+      let preinitializedWebGLContext: WebGLRenderingContext | null = null;
+      if (!this.canvas.getContext("webgl") && !this.canvas.getContext("experimental-webgl")) {
+        try {
+          preinitializedWebGLContext = this.canvas.getContext("webgl", {
+            alpha: true,
+            premultipliedAlpha: false,
+            preserveDrawingBuffer: false,
+          }) as WebGLRenderingContext | null;
+        } catch {
+          // ignore
+        }
+      }
       this.modulePromise = loadNativeModule({
         canvas: this.canvas,
         locateFile: this.locateFile,
+        preinitializedWebGLContext,
         ...this.moduleOverrides,
       }).then((module: NativeModule) => {
         this.module = module;
