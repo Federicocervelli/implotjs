@@ -664,6 +664,12 @@ export interface ImPlotChart {
   addColormap(name: string, colors: Color[], qualitative?: boolean): number;
   getColormapCount(): number;
   getColormapName(cmap: number): string | null;
+  getColormapIndex(name: string): number;
+  getColormapSize(cmap?: number): number;
+  getColormapColor(idx: number, cmap?: number): number[];
+  nextColormapColor(): this;
+  getNextColormapColor(): number[] | null;
+  bustColorCache(title?: string | null): this;
   pushColormap(cmap: number | string): this;
   popColormap(count?: number): this;
   sampleColormap(t: number, cmap?: number): number[];
@@ -712,6 +718,7 @@ export class ImPlotChart {
   plotIdCounter = 0;
   nextAxisLinksAllocations: number[] = [];
   lastSubplotsHovered = false;
+  lastNextColormapColor: number[] | null = null;
 
   constructor(options: ImPlotChartOptions = {}) {
     this.canvas = options.canvas ?? document.createElement("canvas");
@@ -1428,6 +1435,48 @@ export class ImPlotChart {
     this.#ensureMountedSync();
     const ptr = this.module._implotjs_get_colormap_name(cmap);
     return readCString(this.module, ptr);
+  }
+
+  getColormapIndex(name: string): number {
+    this.#ensureMountedSync();
+    return withCString(this.module, name, (namePtr) => this.module._implotjs_get_colormap_index(namePtr));
+  }
+
+  getColormapSize(cmap = -1): number {
+    this.#ensureMountedSync();
+    return this.module._implotjs_get_colormap_size(cmap);
+  }
+
+  getColormapColor(idx: number, cmap = -1): number[] {
+    this.#ensureMountedSync();
+    const out = allocOutputF64(this.module, 4);
+    try {
+      this.module._implotjs_get_colormap_color(idx, cmap, out);
+      return readOutputF64(this.module, out, 4);
+    } finally {
+      freePtr(this.module, out);
+    }
+  }
+
+  nextColormapColor(): this {
+    this.#addCommand({ type: "nextColormapColor" });
+    return this;
+  }
+
+  getNextColormapColor(): number[] | null {
+    return this.lastNextColormapColor;
+  }
+
+  bustColorCache(title: string | null = null): this {
+    const action: RuntimeAction = (module) => {
+      withCString(module, title, (titlePtr) => module._implotjs_bust_color_cache(titlePtr));
+    };
+    if (this.module) {
+      action(this.module);
+    } else {
+      this.pendingRuntimeActions.push(action);
+    }
+    return this;
   }
 
   pushColormap(cmap: number | string): this {
@@ -2183,6 +2232,16 @@ export class ImPlotChart {
       case "popColormap":
         this.module._implotjs_pop_colormap(node.count);
         break;
+      case "nextColormapColor": {
+        const out = allocOutputF64(this.module, 4);
+        try {
+          this.module._implotjs_next_colormap_color(out);
+          this.lastNextColormapColor = readOutputF64(this.module, out, 4);
+        } finally {
+          freePtr(this.module, out);
+        }
+        break;
+      }
       case "colormapScale":
         withCString(this.module, node.label, (labelPtr) => {
           withCString(this.module, node.format, (formatPtr) => {

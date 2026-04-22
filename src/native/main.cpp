@@ -698,6 +698,26 @@ EXPORT const char* implotjs_get_colormap_name(int cmap) {
     return ImPlot::GetColormapName(cmap);
 }
 
+EXPORT int implotjs_get_colormap_index(const char* name) {
+    return ImPlot::GetColormapIndex(name);
+}
+
+EXPORT int implotjs_get_colormap_size(int cmap) {
+    return ImPlot::GetColormapSize(cmap);
+}
+
+EXPORT void implotjs_get_colormap_color(int idx, int cmap, double* out) {
+    WriteVec4(out, ImPlot::GetColormapColor(idx, cmap));
+}
+
+EXPORT void implotjs_next_colormap_color(double* out) {
+    WriteVec4(out, ImPlot::NextColormapColor());
+}
+
+EXPORT void implotjs_bust_color_cache(const char* plot_title_id) {
+    ImPlot::BustColorCache(plot_title_id);
+}
+
 EXPORT void implotjs_push_colormap_index(int cmap) {
     ImPlot::PushColormap(cmap);
 }
