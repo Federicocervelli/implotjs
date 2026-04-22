@@ -75,6 +75,22 @@ All in-scope items have been resolved. See commit history for details.
 
 `GetPlotDrawList` exposes the raw `ImDrawList*` pointer. While `PushPlotClipRect`/`PopPlotClipRect` are exposed for basic custom rendering, the full draw-list API (lines, triangles, text, etc.) would require wrapping the entire `ImDrawList` interface and is not practical for this wrapper.
 
+## Size Optimization
+
+The WASM binary has been reduced from ~1.64MB to ~1.11MB (32% reduction) through:
+
+- `-Oz` + `-flto=full` (aggressive size-focused LTO)
+- `-fno-exceptions` / `-fno-rtti`
+- `-ffunction-sections` / `-fdata-sections` with `--gc-sections`
+- `-fvisibility=hidden`
+- `-sMALLOC=emmalloc` (smaller allocator)
+- `-sENVIRONMENT=web` (removes Node.js support code)
+- `IMGUI_DISABLE_OBSOLETE_*` / `IMPLOT_DISABLE_OBSOLETE_*` macros
+
+**Note:** `--closure 1` was attempted for JS minification but caused a runtime `table index is out of bounds` error by mangling Emscripten's internal function table management. It was reverted.
+
+Further reductions would require more invasive changes (e.g. replacing SDL2 with a minimal HTML5 backend, or pre-baking the font atlas to strip `stb_truetype`).
+
 ## Notes
 
 - The old `SetNextLineStyle`, `SetNextFillStyle`, `SetNextMarkerStyle`, and `SetNextErrorBarStyle` helpers were obsoleted in ImPlot v1.0 in favor of `ImPlotSpec`. The wrapper currently emulates them in C++ via a global `PendingPlotStyle`. Full `ImPlotSpec` exposure (per-vertex colors, `Offset`, `Stride`, etc.) is not yet implemented and is tracked separately.
