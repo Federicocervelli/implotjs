@@ -613,6 +613,8 @@ export interface ImPlotChart {
   endPlot(): this;
   beginLegendPopup(label: string, mouseButton?: number): this;
   endLegendPopup(): this;
+  beginAlignedPlots(groupId: string, vertical?: boolean): this;
+  endAlignedPlots(): this;
   beginSubplots(title: string, rows: number, cols: number, size: Vec2, flags?: number): this;
   endSubplots(): this;
 
@@ -947,6 +949,18 @@ export class ImPlotChart {
 
   endLegendPopup(): this {
     this.#popContainer("legendPopup");
+    return this;
+  }
+
+  beginAlignedPlots(groupId: string, vertical = true): this {
+    const node = { type: "alignedPlots", groupId, vertical, children: [] };
+    this.#addNode(node);
+    this.stack.push(node);
+    return this;
+  }
+
+  endAlignedPlots(): this {
+    this.#popContainer("alignedPlots");
     return this;
   }
 
@@ -1829,6 +1843,17 @@ export class ImPlotChart {
               this.#renderNode(child);
             }
             this.module._implotjs_end_legend_popup();
+          }
+        });
+        break;
+      case "alignedPlots":
+        withCString(this.module, node.groupId, (groupPtr) => {
+          const active = this.module._implotjs_begin_aligned_plots(groupPtr, node.vertical ? 1 : 0);
+          if (active) {
+            for (const child of node.children) {
+              this.#renderNode(child);
+            }
+            this.module._implotjs_end_aligned_plots();
           }
         });
         break;

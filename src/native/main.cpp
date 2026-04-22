@@ -277,6 +277,14 @@ EXPORT int implotjs_is_legend_entry_hovered(const char* label_id) {
     return ImPlot::IsLegendEntryHovered(label_id) ? 1 : 0;
 }
 
+EXPORT int implotjs_begin_aligned_plots(const char* group_id, int vertical) {
+    return ImPlot::BeginAlignedPlots(group_id, vertical != 0) ? 1 : 0;
+}
+
+EXPORT void implotjs_end_aligned_plots() {
+    ImPlot::EndAlignedPlots();
+}
+
 EXPORT int implotjs_begin_subplots(const char* title_id, int rows, int cols, double width, double height, int flags) {
     return ImPlot::BeginSubplots(title_id, rows, cols, Vec2From(width, height), flags) ? 1 : 0;
 }
