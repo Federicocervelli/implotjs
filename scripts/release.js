@@ -34,7 +34,10 @@ if (type === "major") {
 pkg.version = newVersion;
 writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
-execSync(`git add package.json`);
+// Regenerate README so it stays in sync with the source
+execSync("bun run generate:readme", { stdio: "inherit" });
+
+execSync(`git add package.json README.md`);
 execSync(`git commit -m "chore(release): v${newVersion}"`);
 execSync(`git tag v${newVersion}`);
 execSync(`git push origin HEAD`);
