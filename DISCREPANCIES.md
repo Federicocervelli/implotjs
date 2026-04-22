@@ -4,60 +4,50 @@ This document tracks gaps between the vendored **ImPlot v1.0** API and the JavaS
 
 ## In Scope (Fixable within the managed-canvas abstraction)
 
-### 1. Enum Constants
+All in-scope items have been resolved. See commit history for details.
 
-| Enum | Issue | Current Value | Expected Value |
-|------|-------|---------------|----------------|
-| `ImPlotMarker.None` | Off-by-one | `-1` | `-2` |
-| `ImPlotMarker.Circle` | Off-by-one (no `Auto` entry) | `0` | should start after `Auto: -1` |
-| `ImPlotLegendFlags.Reverse` | Missing | — | `1 << 7` |
-| `ImPlotPieChartFlags.NoSliceBorder` | Missing | — | `1 << 13` |
-| `ImPlotCol` | Not exported | — | `0` through `ImPlotCol_COUNT-1` |
-| `ImPlotStyleVar` | Not exported | — | `0` through `ImPlotStyleVar_COUNT-1` |
-| `ImPlotProp` | Not exported | — | `0` through `ImPlotProp_Flags` |
+### 1. Enum Constants ✅
 
-### 2. Missing Plot Types
+| Enum | Issue | Fix |
+|------|-------|-----|
+| `ImPlotMarker.None` | Off-by-one (`-1`) | Corrected to `-2`; added `Auto: -1` |
+| `ImPlotLegendFlags.Reverse` | Missing | Added `1 << 7` |
+| `ImPlotPieChartFlags.NoSliceBorder` | Missing | Added `1 << 13` |
+| `ImPlotCol` | Not exported | Full enum exported |
+| `ImPlotStyleVar` | Not exported | Full enum exported |
+| `ImPlotProp` | Not exported | Full enum exported |
 
-| Function | Overloads | Notes |
-|----------|-----------|-------|
-| `PlotBubbles` | `values+szs` and `xs+ys+szs` | New in v1.0 |
-| `PlotPolygon` | `xs+ys` | New in v1.0 |
+### 2. Missing Plot Types ✅
 
-### 3. Setup / Axes
+- `PlotBubbles` (`plotBubbles(values, szs)` and `plotBubbles(xs, ys, szs)`)
+- `PlotPolygon` (`plotPolygon(xs, ys)`)
 
-| Function | Issue |
-|----------|-------|
-| `SetupAxisTicks(values, labels)` | JS accepts label strings but the C++ binding ignores them; only the value-based overload is wired. |
-| `SetupAxisLinks` | Missing entirely. |
-| `SetNextAxisLinks` | Missing entirely. |
+### 3. Setup / Axes ✅
 
-### 4. Legend Interaction
+- `SetupAxisTicks(values, labels)` — labels are now passed through to C++.
+- `SetupAxisLinks(axis, min, max)` — added with persistent WASM memory during plot lifetime.
+- `SetNextAxisLinks(axis, min, max)` — added with persistent WASM memory until next `EndPlot`.
 
-| Function | Status |
-|----------|--------|
-| `BeginLegendPopup` | Missing |
-| `EndLegendPopup` | Missing |
-| `IsLegendEntryHovered` | Missing |
+### 4. Legend Interaction ✅
 
-### 5. Plot Utils
+- `beginLegendPopup(label, mouseButton)` / `endLegendPopup()` — container nodes (supports future popup content).
+- `isLegendEntryHovered(label)` — synchronous query.
 
-| Function | Status |
-|----------|--------|
-| `IsSubplotsHovered` | Missing |
+### 5. Plot Utils ✅
 
-### 6. Style & Colormap Helpers
+- `isSubplotsHovered()` — captured during render.
 
-| Function | Status |
-|----------|--------|
-| `GetStyleColorName` | Missing |
-| `GetMarkerName` | Missing |
-| `NextMarker` | Missing |
-| `GetColormapIndex` | Missing |
-| `GetColormapSize` | Missing |
-| `GetColormapColor` | Missing |
-| `NextColormapColor` | Missing |
-| `BustColorCache` | Missing |
-| `GetStyle` (basic read access) | Missing |
+### 6. Style & Colormap Helpers ✅
+
+- `getStyleColorName(idx)` — synchronous.
+- `getMarkerName(idx)` — synchronous.
+- `nextMarker()` command + `getNextMarker()` getter.
+- `getColormapIndex(name)` — synchronous.
+- `getColormapSize(cmap?)` — synchronous.
+- `getColormapColor(idx, cmap?)` — synchronous.
+- `nextColormapColor()` command + `getNextColormapColor()` getter.
+- `bustColorCache(title?)` — synchronous/runtime action.
+- `getStyle()` — full struct snapshot (`ImPlotStyleSnapshot`).
 
 ## Out of Scope (Requires JS↔C++ callbacks or breaks the managed-canvas model)
 
