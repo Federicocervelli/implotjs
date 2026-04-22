@@ -223,6 +223,8 @@ export const ImPlotLineFlags = {
 };
 
 export const ImPlotScatterFlags = { None: 0, NoClip: 1 << 10 };
+export const ImPlotBubblesFlags = { None: 0 };
+export const ImPlotPolygonFlags = { None: 0, Concave: 1 << 10 };
 export const ImPlotStairsFlags = { None: 0, PreStep: 1 << 10, Shaded: 1 << 11 };
 export const ImPlotShadedFlags = { None: 0 };
 export const ImPlotBarsFlags = { None: 0, Horizontal: 1 << 10 };
@@ -606,6 +608,9 @@ export interface ImPlotChart {
   plotLine(label: string, xs: NumericArray, ys: NumericArray, flags?: number): this;
   plotScatter(label: string, values: NumericArray, flags?: number): this;
   plotScatter(label: string, xs: NumericArray, ys: NumericArray, flags?: number): this;
+  plotBubbles(label: string, values: NumericArray, szs: NumericArray, flags?: number): this;
+  plotBubbles(label: string, xs: NumericArray, ys: NumericArray, szs: NumericArray, flags?: number): this;
+  plotPolygon(label: string, xs: NumericArray, ys: NumericArray, flags?: number): this;
   plotStairs(label: string, values: NumericArray, flags?: number): this;
   plotStairs(label: string, xs: NumericArray, ys: NumericArray, flags?: number): this;
   plotShaded(label: string, values: NumericArray): this;
@@ -1000,6 +1005,41 @@ export class ImPlotChart {
 
   plotScatter(label: string, valuesOrXs: NumericArray, ysOrFlags?: NumericArray | number, maybeFlags?: number): this {
     this.#queueSeriesNode("plotScatter", label, valuesOrXs, ysOrFlags, maybeFlags);
+    return this;
+  }
+
+  plotBubbles(label: string, valuesOrXs: NumericArray, szsOrYs: NumericArray, flagsOrSzs?: NumericArray | number, maybeFlags?: number): this {
+    if (Array.isArray(flagsOrSzs) || isTypedArray(flagsOrSzs)) {
+      this.#addCommand({
+        type: "plotBubblesXY",
+        label,
+        xs: toFloat64Array(valuesOrXs, "xs"),
+        ys: toFloat64Array(szsOrYs, "ys"),
+        szs: toFloat64Array(flagsOrSzs, "szs"),
+        flags: maybeFlags ?? ImPlotBubblesFlags.None,
+      });
+    } else {
+      this.#addCommand({
+        type: "plotBubblesY",
+        label,
+        values: toFloat64Array(valuesOrXs, "values"),
+        szs: toFloat64Array(szsOrYs, "szs"),
+        xscale: 1,
+        xstart: 0,
+        flags: flagsOrSzs ?? ImPlotBubblesFlags.None,
+      });
+    }
+    return this;
+  }
+
+  plotPolygon(label: string, xs: NumericArray, ys: NumericArray, flags = ImPlotPolygonFlags.None): this {
+    this.#addCommand({
+      type: "plotPolygon",
+      label,
+      xs: toFloat64Array(xs, "xs"),
+      ys: toFloat64Array(ys, "ys"),
+      flags,
+    });
     return this;
   }
 
@@ -1694,6 +1734,47 @@ export class ImPlotChart {
             else if (node.type === "plotStairsXY") this.module._implotjs_plot_stairs_xy(labelPtr, xs.ptr, ys.ptr, node.xs.length, node.flags);
             else if (node.type === "plotBarsXY") this.module._implotjs_plot_bars_xy(labelPtr, xs.ptr, ys.ptr, node.xs.length, node.barSize, node.flags);
             else this.module._implotjs_plot_stems_xy(labelPtr, xs.ptr, ys.ptr, node.xs.length, node.ref, node.flags);
+          });
+        } finally {
+          freePtr(this.module, xs.ptr);
+          freePtr(this.module, ys.ptr);
+        }
+        break;
+      }
+      case "plotBubblesY": {
+        const values = allocFloat64Array(this.module, node.values);
+        const szs = allocFloat64Array(this.module, node.szs);
+        try {
+          withCString(this.module, node.label, (labelPtr) => {
+            this.module._implotjs_plot_bubbles_y(labelPtr, values.ptr, szs.ptr, node.values.length, node.xscale, node.xstart, node.flags);
+          });
+        } finally {
+          freePtr(this.module, values.ptr);
+          freePtr(this.module, szs.ptr);
+        }
+        break;
+      }
+      case "plotBubblesXY": {
+        const xs = allocFloat64Array(this.module, node.xs);
+        const ys = allocFloat64Array(this.module, node.ys);
+        const szs = allocFloat64Array(this.module, node.szs);
+        try {
+          withCString(this.module, node.label, (labelPtr) => {
+            this.module._implotjs_plot_bubbles_xy(labelPtr, xs.ptr, ys.ptr, szs.ptr, node.xs.length, node.flags);
+          });
+        } finally {
+          freePtr(this.module, xs.ptr);
+          freePtr(this.module, ys.ptr);
+          freePtr(this.module, szs.ptr);
+        }
+        break;
+      }
+      case "plotPolygon": {
+        const xs = allocFloat64Array(this.module, node.xs);
+        const ys = allocFloat64Array(this.module, node.ys);
+        try {
+          withCString(this.module, node.label, (labelPtr) => {
+            this.module._implotjs_plot_polygon(labelPtr, xs.ptr, ys.ptr, node.xs.length, node.flags);
           });
         } finally {
           freePtr(this.module, xs.ptr);

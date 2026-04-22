@@ -357,6 +357,18 @@ EXPORT void implotjs_plot_scatter_xy(const char* label_id, const double* xs, con
     ImPlot::PlotScatter<double>(label_id, xs, ys, count, MakePlotSpec(flags));
 }
 
+EXPORT void implotjs_plot_bubbles_y(const char* label_id, const double* values, const double* szs, int count, double xscale, double xstart, int flags) {
+    ImPlot::PlotBubbles<double>(label_id, values, szs, count, xscale, xstart, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_bubbles_xy(const char* label_id, const double* xs, const double* ys, const double* szs, int count, int flags) {
+    ImPlot::PlotBubbles<double>(label_id, xs, ys, szs, count, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_polygon(const char* label_id, const double* xs, const double* ys, int count, int flags) {
+    ImPlot::PlotPolygon<double>(label_id, xs, ys, count, MakePlotSpec(flags));
+}
+
 EXPORT void implotjs_plot_stairs_y(const char* label_id, const double* ys, int count, double xscale, double xstart, int flags) {
     ImPlot::PlotStairs<double>(label_id, ys, count, xscale, xstart, MakePlotSpec(flags));
 }
