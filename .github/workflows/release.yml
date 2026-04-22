@@ -19,9 +19,9 @@ jobs:
           submodules: recursive
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Setup Bun
@@ -45,10 +45,7 @@ jobs:
         run: bun run package:test
 
       - name: Publish to npm
-        run: |
-          # Remove empty _authToken so npm falls back to OIDC / Trusted Publisher auth
-          sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
-          npm publish --provenance --access public
+        run: npm publish
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
