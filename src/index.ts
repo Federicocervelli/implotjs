@@ -621,9 +621,11 @@ export interface ImPlotChart {
   setupAxis(axis: number, label?: string | null, flags?: number): this;
   setupAxisLimits(axis: number, min: number, max: number, cond?: number): this;
   setupAxisFormat(axis: number, format: string): this;
+  setupAxisFormat(axis: number, formatter: (value: number) => string): this;
   setupAxisTicks(axis: number, values: NumericArray, count: number, labelsOrCount?: unknown, keepDefault?: boolean): this;
   setupAxisTicks(axis: number, min: number, max: number, count: number, keepDefault?: boolean): this;
   setupAxisScale(axis: number, scale: number): this;
+  setupAxisScale(axis: number, forward: (value: number) => number, inverse: (value: number) => number): this;
   setupAxisLimitsConstraints(axis: number, min: number, max: number): this;
   setupAxisZoomConstraints(axis: number, min: number, max: number): this;
   setupAxisLinks(axis: number, min: number, max: number): this;
@@ -646,6 +648,11 @@ export interface ImPlotChart {
   plotBubbles(label: string, values: NumericArray, szs: NumericArray, flags?: number): this;
   plotBubbles(label: string, xs: NumericArray, ys: NumericArray, szs: NumericArray, flags?: number): this;
   plotPolygon(label: string, xs: NumericArray, ys: NumericArray, flags?: number): this;
+  plotLineG(label: string, getter: (idx: number) => PlotPoint, count: number, flags?: number): this;
+  plotScatterG(label: string, getter: (idx: number) => PlotPoint, count: number, flags?: number): this;
+  plotStairsG(label: string, getter: (idx: number) => PlotPoint, count: number, flags?: number): this;
+  plotBarsG(label: string, getter: (idx: number) => PlotPoint, count: number, barSize: number, flags?: number): this;
+  plotDigitalG(label: string, getter: (idx: number) => PlotPoint, count: number, flags?: number): this;
   plotStairs(label: string, values: NumericArray, flags?: number): this;
   plotStairs(label: string, xs: NumericArray, ys: NumericArray, flags?: number): this;
   plotShaded(label: string, values: NumericArray): this;
@@ -764,6 +771,9 @@ export class ImPlotChart {
   lastSubplotsHovered = false;
   lastNextColormapColor: number[] | null = null;
   lastNextMarker: number | null = null;
+  private static getterCallbackId = 0;
+  private static transformCallbackId = 0;
+  private static formatterCallbackId = 0;
 
   constructor(options: ImPlotChartOptions = {}) {
     this.canvas = options.canvas ?? document.createElement("canvas");
@@ -798,6 +808,9 @@ export class ImPlotChart {
         ...this.moduleOverrides,
       }).then((module: NativeModule) => {
         this.module = module;
+        module.__implotjs_getters = {};
+        module.__implotjs_transforms = {};
+        module.__implotjs_formatters = {};
         module._implotjs_style_colors(this.theme);
         module._implotjs_resize(this.width, this.height);
         for (const action of this.pendingRuntimeActions) {
@@ -996,8 +1009,22 @@ export class ImPlotChart {
     return this;
   }
 
-  setupAxisFormat(axis: number, format: string): this {
-    this.#addCommand({ type: "setupAxisFormat", axis, format });
+  setupAxisFormat(axis: number, formatOrFormatter: string | ((value: number) => string)): this {
+    if (typeof formatOrFormatter === "function") {
+      const cbId = ++ImPlotChart.formatterCallbackId;
+      this.#addCommand({ type: "setupAxisFormatCallback", axis, cbId });
+      const action: RuntimeAction = (module) => {
+        if (!module.__implotjs_formatters) module.__implotjs_formatters = {};
+        module.__implotjs_formatters[cbId] = formatOrFormatter;
+      };
+      if (this.module) {
+        action(this.module);
+      } else {
+        this.pendingRuntimeActions.push(action);
+      }
+    } else {
+      this.#addCommand({ type: "setupAxisFormat", axis, format: formatOrFormatter });
+    }
     return this;
   }
 
@@ -1025,11 +1052,26 @@ export class ImPlotChart {
     return this;
   }
 
-  setupAxisScale(axis: number, scale: number): this {
-    this.#addCommand({ type: "setupAxisScale", axis, scale });
-    const plot = this.#currentPlotNode();
-    if (plot) {
-      plot.axisScales[axis] = scale;
+  setupAxisScale(axis: number, scaleOrForward: number | ((value: number) => number), inverse?: (value: number) => number): this {
+    if (typeof scaleOrForward === "function" && inverse !== undefined) {
+      const cbId = ++ImPlotChart.transformCallbackId;
+      this.#addCommand({ type: "setupAxisScaleTransform", axis, cbId });
+      const action: RuntimeAction = (module) => {
+        if (!module.__implotjs_transforms) module.__implotjs_transforms = {};
+        module.__implotjs_transforms[cbId] = { forward: scaleOrForward, inverse };
+      };
+      if (this.module) {
+        action(this.module);
+      } else {
+        this.pendingRuntimeActions.push(action);
+      }
+    } else {
+      const scale = typeof scaleOrForward === "number" ? scaleOrForward : ImPlotScale.Linear;
+      this.#addCommand({ type: "setupAxisScale", axis, scale });
+      const plot = this.#currentPlotNode();
+      if (plot) {
+        plot.axisScales[axis] = scale;
+      }
     }
     return this;
   }
@@ -1141,6 +1183,52 @@ export class ImPlotChart {
       ys: toFloat64Array(ys, "ys"),
       flags,
     });
+    return this;
+  }
+
+  #registerGetter(getter: (idx: number) => PlotPoint): number {
+    const id = ++ImPlotChart.getterCallbackId;
+    const module = this.module ?? { __implotjs_getters: undefined as any };
+    if (!module.__implotjs_getters) {
+      module.__implotjs_getters = {};
+    }
+    module.__implotjs_getters[id] = getter;
+    return id;
+  }
+
+  #unregisterGetter(id: number): void {
+    if (this.module?.__implotjs_getters) {
+      delete this.module.__implotjs_getters[id];
+    }
+  }
+
+  plotLineG(label: string, getter: (idx: number) => PlotPoint, count: number, flags = ImPlotLineFlags.None): this {
+    const cbId = this.#registerGetter(getter);
+    this.#addCommand({ type: "plotLineG", label, cbId, count, flags });
+    return this;
+  }
+
+  plotScatterG(label: string, getter: (idx: number) => PlotPoint, count: number, flags = ImPlotScatterFlags.None): this {
+    const cbId = this.#registerGetter(getter);
+    this.#addCommand({ type: "plotScatterG", label, cbId, count, flags });
+    return this;
+  }
+
+  plotStairsG(label: string, getter: (idx: number) => PlotPoint, count: number, flags = ImPlotStairsFlags.None): this {
+    const cbId = this.#registerGetter(getter);
+    this.#addCommand({ type: "plotStairsG", label, cbId, count, flags });
+    return this;
+  }
+
+  plotBarsG(label: string, getter: (idx: number) => PlotPoint, count: number, barSize: number, flags = ImPlotBarsFlags.None): this {
+    const cbId = this.#registerGetter(getter);
+    this.#addCommand({ type: "plotBarsG", label, cbId, count, barSize, flags });
+    return this;
+  }
+
+  plotDigitalG(label: string, getter: (idx: number) => PlotPoint, count: number, flags = ImPlotDigitalFlags.None): this {
+    const cbId = this.#registerGetter(getter);
+    this.#addCommand({ type: "plotDigitalG", label, cbId, count, flags });
     return this;
   }
 
@@ -1959,6 +2047,12 @@ export class ImPlotChart {
       case "setupAxisScale":
         this.module._implotjs_setup_axis_scale(node.axis, node.scale);
         break;
+      case "setupAxisScaleTransform":
+        this.module._implotjs_setup_axis_scale_transform(node.axis, node.cbId);
+        break;
+      case "setupAxisFormatCallback":
+        this.module._implotjs_setup_axis_format_callback(node.axis, node.cbId);
+        break;
       case "setupAxisLinks": {
         const ptr = allocOutputF64(this.module, 2);
         this.module.HEAPF64[ptr >> 3] = node.min;
@@ -2052,6 +2146,24 @@ export class ImPlotChart {
         } finally {
           freePtr(this.module, xs.ptr);
           freePtr(this.module, ys.ptr);
+        }
+        break;
+      }
+      case "plotLineG":
+      case "plotScatterG":
+      case "plotStairsG":
+      case "plotBarsG":
+      case "plotDigitalG": {
+        try {
+          withCString(this.module, node.label, (labelPtr) => {
+            if (node.type === "plotLineG") this.module._implotjs_plot_line_g(labelPtr, node.cbId, node.count, node.flags);
+            else if (node.type === "plotScatterG") this.module._implotjs_plot_scatter_g(labelPtr, node.cbId, node.count, node.flags);
+            else if (node.type === "plotStairsG") this.module._implotjs_plot_stairs_g(labelPtr, node.cbId, node.count, node.flags);
+            else if (node.type === "plotBarsG") this.module._implotjs_plot_bars_g(labelPtr, node.cbId, node.count, node.barSize, node.flags);
+            else this.module._implotjs_plot_digital_g(labelPtr, node.cbId, node.count, node.flags);
+          });
+        } finally {
+          this.#unregisterGetter(node.cbId);
         }
         break;
       }

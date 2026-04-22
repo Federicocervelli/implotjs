@@ -12,6 +12,7 @@
 #endif
 
 #include <emscripten/emscripten.h>
+#include <emscripten/em_js.h>
 
 #include <cfloat>
 #include <cstdint>
@@ -191,6 +192,12 @@ int main(int, char**) {
 
 #define EXPORT extern "C" EMSCRIPTEN_KEEPALIVE
 
+// Forward declarations for JS callback bridges
+ImPlotPoint GetterCallbackBridge(int idx, void* user_data);
+double TransformForwardBridge(double value, void* user_data);
+double TransformInverseBridge(double value, void* user_data);
+int FormatterCallbackBridge(double value, char* buff, int size, void* user_data);
+
 EXPORT int implotjs_begin_frame(int width, int height) {
     if (!EnsureRuntime()) {
         return 0;
@@ -321,6 +328,14 @@ EXPORT void implotjs_setup_axis_scale(int axis, int scale) {
     ImPlot::SetupAxisScale(axis, static_cast<ImPlotScale>(scale));
 }
 
+EXPORT void implotjs_setup_axis_scale_transform(int axis, int cb_id) {
+    ImPlot::SetupAxisScale(axis, TransformForwardBridge, TransformInverseBridge, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id)));
+}
+
+EXPORT void implotjs_setup_axis_format_callback(int axis, int cb_id) {
+    ImPlot::SetupAxisFormat(axis, FormatterCallbackBridge, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id)));
+}
+
 EXPORT void implotjs_setup_axis_links(int axis, double* link_min, double* link_max) {
     ImPlot::SetupAxisLinks(axis, link_min, link_max);
 }
@@ -373,6 +388,66 @@ EXPORT void implotjs_set_next_axes_to_fit() {
     ImPlot::SetNextAxesToFit();
 }
 
+//---------------------------------------------------------------------------
+// JS Callback Bridges
+//---------------------------------------------------------------------------
+
+EM_JS(void, implotjs_getter_callback, (int cb_id, int idx, double* out_x, double* out_y), {
+    var fn = Module['__implotjs_getters'][cb_id];
+    var pt = fn(idx);
+    if (typeof pt === 'object' && pt !== null) {
+        HEAPF64[out_x >> 3] = pt.x !== undefined ? pt.x : (pt[0] !== undefined ? pt[0] : 0);
+        HEAPF64[out_y >> 3] = pt.y !== undefined ? pt.y : (pt[1] !== undefined ? pt[1] : 0);
+    } else {
+        HEAPF64[out_x >> 3] = 0;
+        HEAPF64[out_y >> 3] = 0;
+    }
+});
+
+EM_JS(double, implotjs_transform_forward_callback, (int cb_id, double value), {
+    var fn = Module['__implotjs_transforms'][cb_id];
+    return fn.forward(value);
+});
+
+EM_JS(double, implotjs_transform_inverse_callback, (int cb_id, double value), {
+    var fn = Module['__implotjs_transforms'][cb_id];
+    return fn.inverse(value);
+});
+
+EM_JS(int, implotjs_formatter_callback, (int cb_id, double value, char* buff, int size), {
+    var fn = Module['__implotjs_formatters'][cb_id];
+    var str = String(fn(value));
+    var bytes = new TextEncoder().encode(str);
+    var len = Math.min(bytes.length, size - 1);
+    for (var i = 0; i < len; ++i) {
+        HEAPU8[buff + i] = bytes[i];
+    }
+    HEAPU8[buff + len] = 0;
+    return len;
+});
+
+ImPlotPoint GetterCallbackBridge(int idx, void* user_data) {
+    int cb_id = static_cast<int>(reinterpret_cast<intptr_t>(user_data));
+    double x = 0, y = 0;
+    implotjs_getter_callback(cb_id, idx, &x, &y);
+    return ImPlotPoint(x, y);
+}
+
+double TransformForwardBridge(double value, void* user_data) {
+    int cb_id = static_cast<int>(reinterpret_cast<intptr_t>(user_data));
+    return implotjs_transform_forward_callback(cb_id, value);
+}
+
+double TransformInverseBridge(double value, void* user_data) {
+    int cb_id = static_cast<int>(reinterpret_cast<intptr_t>(user_data));
+    return implotjs_transform_inverse_callback(cb_id, value);
+}
+
+int FormatterCallbackBridge(double value, char* buff, int size, void* user_data) {
+    int cb_id = static_cast<int>(reinterpret_cast<intptr_t>(user_data));
+    return implotjs_formatter_callback(cb_id, value, buff, size);
+}
+
 EXPORT void implotjs_plot_line_y(const char* label_id, const double* ys, int count, double xscale, double xstart, int flags) {
     ImPlot::PlotLine<double>(label_id, ys, count, xscale, xstart, MakePlotSpec(flags));
 }
@@ -387,6 +462,18 @@ EXPORT void implotjs_plot_scatter_y(const char* label_id, const double* ys, int 
 
 EXPORT void implotjs_plot_scatter_xy(const char* label_id, const double* xs, const double* ys, int count, int flags) {
     ImPlot::PlotScatter<double>(label_id, xs, ys, count, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_line_g(const char* label_id, int cb_id, int count, int flags) {
+    ImPlot::PlotLineG(label_id, GetterCallbackBridge, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id)), count, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_scatter_g(const char* label_id, int cb_id, int count, int flags) {
+    ImPlot::PlotScatterG(label_id, GetterCallbackBridge, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id)), count, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_stairs_g(const char* label_id, int cb_id, int count, int flags) {
+    ImPlot::PlotStairsG(label_id, GetterCallbackBridge, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id)), count, MakePlotSpec(flags));
 }
 
 EXPORT void implotjs_plot_bubbles_y(const char* label_id, const double* values, const double* szs, int count, double xscale, double xstart, int flags) {
@@ -484,6 +571,30 @@ EXPORT double implotjs_plot_histogram_2d(const char* label_id, const double* xs,
 
 EXPORT void implotjs_plot_digital(const char* label_id, const double* xs, const double* ys, int count, int flags) {
     ImPlot::PlotDigital<double>(label_id, xs, ys, count, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_digital_g(const char* label_id, int cb_id, int count, int flags) {
+    ImPlot::PlotDigitalG(label_id, GetterCallbackBridge, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id)), count, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_bars_g(const char* label_id, int cb_id, int count, double bar_size, int flags) {
+    ImPlot::PlotBarsG(label_id, GetterCallbackBridge, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id)), count, bar_size, MakePlotSpec(flags));
+}
+
+EXPORT void implotjs_plot_shaded_g(const char* label_id, int cb_id1, int cb_id2, int count, int flags) {
+    auto getter1 = [](int idx, void* data) -> ImPlotPoint {
+        int cb_id = static_cast<int>(reinterpret_cast<intptr_t>(data));
+        double x = 0, y = 0;
+        implotjs_getter_callback(cb_id, idx, &x, &y);
+        return ImPlotPoint(x, y);
+    };
+    auto getter2 = [](int idx, void* data) -> ImPlotPoint {
+        int cb_id = static_cast<int>(reinterpret_cast<intptr_t>(data));
+        double x = 0, y = 0;
+        implotjs_getter_callback(cb_id, idx, &x, &y);
+        return ImPlotPoint(x, y);
+    };
+    ImPlot::PlotShadedG(label_id, getter1, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id1)), getter2, reinterpret_cast<void*>(static_cast<intptr_t>(cb_id2)), count, MakePlotSpec(flags));
 }
 
 EXPORT void implotjs_plot_image(const char* label_id, double texture_id, double x_min, double y_min, double x_max, double y_max, double u0, double v0, double u1, double v1, double r, double g, double b, double a, int flags) {
