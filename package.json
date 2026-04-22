@@ -31,6 +31,7 @@
     "prepack": "bash scripts/build-wasm.sh",
     "start": "python3 -m http.server 8000",
     "start:test": "bash scripts/start-test-server.sh",
+    "generate:readme": "bun run scripts/generate-readme.ts",
     "release:patch": "node scripts/release.js patch",
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major"
