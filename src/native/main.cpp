@@ -821,3 +821,27 @@ EXPORT void implotjs_map_input_default() {
 EXPORT void implotjs_map_input_reverse() {
     ImPlot::MapInputReverse();
 }
+
+EXPORT void implotjs_show_style_editor() {
+    ImPlot::ShowStyleEditor();
+}
+
+EXPORT int implotjs_show_style_selector(const char* label) {
+    return ImPlot::ShowStyleSelector(label) ? 1 : 0;
+}
+
+EXPORT int implotjs_show_colormap_selector(const char* label) {
+    return ImPlot::ShowColormapSelector(label) ? 1 : 0;
+}
+
+EXPORT int implotjs_show_input_map_selector(const char* label) {
+    return ImPlot::ShowInputMapSelector(label) ? 1 : 0;
+}
+
+EXPORT void implotjs_show_user_guide() {
+    ImPlot::ShowUserGuide();
+}
+
+EXPORT void implotjs_show_metrics_window() {
+    ImPlot::ShowMetricsWindow();
+}

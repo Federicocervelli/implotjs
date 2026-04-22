@@ -694,6 +694,13 @@ export interface ImPlotChart {
   getNextMarker(): number | null;
   getStyle(): ImPlotStyleSnapshot;
 
+  showStyleEditor(): this;
+  showStyleSelector(label: string): this;
+  showColormapSelector(label: string): this;
+  showInputMapSelector(label: string): this;
+  showUserGuide(): this;
+  showMetricsWindow(): this;
+
   addColormap(name: string, colors: Color[], qualitative?: boolean): number;
   getColormapCount(): number;
   getColormapName(cmap: number): string | null;
@@ -1450,6 +1457,36 @@ export class ImPlotChart {
 
   getNextMarker(): number | null {
     return this.lastNextMarker;
+  }
+
+  showStyleEditor(): this {
+    this.#addCommand({ type: "showStyleEditor" });
+    return this;
+  }
+
+  showStyleSelector(label: string): this {
+    this.#addCommand({ type: "showStyleSelector", label });
+    return this;
+  }
+
+  showColormapSelector(label: string): this {
+    this.#addCommand({ type: "showColormapSelector", label });
+    return this;
+  }
+
+  showInputMapSelector(label: string): this {
+    this.#addCommand({ type: "showInputMapSelector", label });
+    return this;
+  }
+
+  showUserGuide(): this {
+    this.#addCommand({ type: "showUserGuide" });
+    return this;
+  }
+
+  showMetricsWindow(): this {
+    this.#addCommand({ type: "showMetricsWindow" });
+    return this;
   }
 
   getStyle(): ImPlotStyleSnapshot {
@@ -2372,6 +2409,30 @@ export class ImPlotChart {
         withCString(this.module, node.label, (labelPtr) => {
           node.state.clicked = !!this.module._implotjs_colormap_button(labelPtr, node.size[0], node.size[1], node.cmap);
         });
+        break;
+      case "showStyleEditor":
+        this.module._implotjs_show_style_editor();
+        break;
+      case "showStyleSelector":
+        withCString(this.module, node.label, (labelPtr) => {
+          this.module._implotjs_show_style_selector(labelPtr);
+        });
+        break;
+      case "showColormapSelector":
+        withCString(this.module, node.label, (labelPtr) => {
+          this.module._implotjs_show_colormap_selector(labelPtr);
+        });
+        break;
+      case "showInputMapSelector":
+        withCString(this.module, node.label, (labelPtr) => {
+          this.module._implotjs_show_input_map_selector(labelPtr);
+        });
+        break;
+      case "showUserGuide":
+        this.module._implotjs_show_user_guide();
+        break;
+      case "showMetricsWindow":
+        this.module._implotjs_show_metrics_window();
         break;
       default:
         throw new Error(`Unsupported render command: ${node.type}`);
