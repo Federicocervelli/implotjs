@@ -40,3 +40,15 @@ bun run start   # serves repo root on :8000
 ## No lint/typecheck scripts
 
 Only TypeScript compilation (tsc) runs as part of build. No dedicated lint or typecheck commands.
+
+## Release
+
+```bash
+npm run release:patch   # 0.1.0 -> 0.1.1
+npm run release:minor   # 0.1.0 -> 0.2.0
+npm run release:major   # 0.1.0 -> 1.0.0
+```
+
+This bumps `package.json`, commits, tags (e.g. `v0.1.1`), and pushes. The CI workflow (`.github/workflows/release.yml`) then builds, tests, publishes to npm, and creates a GitHub Release.
+
+**Required:** An `NPM_TOKEN` secret must be configured in the GitHub repository settings.
