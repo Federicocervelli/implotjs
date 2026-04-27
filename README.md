@@ -1,7 +1,7 @@
 # implotjs
 
 [![npm version](https://img.shields.io/npm/v/implotjs.svg)](https://www.npmjs.com/package/implotjs)
-[![license](https://img.shields.io/npm/l/implotjs.svg)](https://github.com/Federicocervelli/implotjs/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Federicocervelli/implotjs/blob/master/LICENSE)
 
 Managed-canvas JavaScript/TypeScript wrapper around Dear ImGui + [ImPlot](https://github.com/epezent/implot), compiled to WebAssembly.
 
